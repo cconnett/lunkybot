@@ -45,27 +45,29 @@ const actions = [
   },
   {
     pattern: /!(info|commands)/,
-    reply: 'https://github.com/cconnett/lunkybot#lunkybot'
+    reply: '<https://github.com/cconnett/lunkybot#lunkybot>'
   },
   {
     pattern: /!discord/,
     reply:
-        'https://www.reddit.com/r/spelunky/comments/46n8q3/spelunky_discord_channel/'
+        '<https://www.reddit.com/r/spelunky/comments/46n8q3/spelunky_discord_channel/>'
   },
-  {pattern: /!reddit/, reply: 'https://www.reddit.com/r/spelunky'},
-  {pattern: /!mossranking/, reply: 'http://mossranking.mooo.com/'},
-  {pattern: /!cratechances/, reply: 'http://spelunky.wikia.com/wiki/Crate'},
-  {pattern: /!news/, reply: 'http://mossranking.mooo.com/news/'},
+  {pattern: /!reddit/, reply: '<https://www.reddit.com/r/spelunky>'},
+  {pattern: /!mossranking/, reply: '<http://mossranking.mooo.com/>'},
+  {pattern: /!news/, reply: '<http://mossranking.mooo.com/news/>'},
   {
     pattern: /!recentruns/,
-    reply: 'http://mossranking.mooo.com/recent_runs.php'
+    reply: '<http://mossranking.mooo.com/recent_runs.php>'
   },
   {pattern: /!rng/, reply: 'ಠ_ಠ THIS GAME MAN ಠ_ಠ'},
-  {pattern: /!cratechances/, reply: 'http://spelunky.wikia.com/wiki/Crate'},
+  {pattern: /!cratechances/, reply: '<http://spelunky.wikia.com/wiki/Crate>'},
   {pattern: /!grooomp/, reply: 'ssssssssstop'},
   {pattern: /!curt/, reply: 'c:'},
   {pattern: /!brut/, reply: 'ʕ•ᴥ•ʔ meow ʕ•ᴥ•ʔ'},
-  {pattern: /!leaderboards/, reply: 'http://mossranking.mooo.com/records.php'},
+  {
+    pattern: /!leaderboards/,
+    reply: '<http://mossranking.mooo.com/records.php>'
+  },
   {pattern: /!cat/, reply: function() {}},
 ];
 
