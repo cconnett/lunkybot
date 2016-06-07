@@ -1,0 +1,24 @@
+{
+  "name": "lunkybot",
+  "version": "1.0.0",
+  "description": "Community bot for Spelunky.",
+  "main": "lunkybot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cconnett/lunkybot.git"
+  },
+  "author": "AlphaChannel,Curticus",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cconnett/lunkybot/issues"
+  },
+  "homepage": "https://github.com/cconnett/lunkybot#readme",
+  "dependencies": {
+    "difflib": "^0.2.4",
+    "discord.js": "^7.0.1",
+    "twitch-api": "^0.4.3"
+  }
+}
