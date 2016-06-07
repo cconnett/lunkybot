@@ -9,8 +9,9 @@ const bot = new discord.Client();
 const actions = [
   {
     pattern: /!stats (\w+)/,
-    reply: function(message, match) {
-      let name = match.group(1);
+    reply: function(message, groups) {
+      let name = groups[1];
+      return null;
       let spelunkers = getSpelunkersFromMossranking();
       let matches = difflib.getCloseMatches(name, spelunkers);
       if (!matches) {
@@ -24,16 +25,18 @@ const actions = [
   },
   {
     pattern: /!wr (\S+)/,
-    reply: function(message, match) {
-      let category = match.group(1);
+    reply: function(message, groups) {
+      let category = groups[1];
       let categories = [];
       let matches = difflib.getCloseMatches(category, categories);
       if (!matches) {
         bot.reply(message, `What category is ${category}?`);
       }
       let cat = matches[0];
+      return;
       var [time, spelunker] = lookupWr(cat);
-      bot.reply(message, `World record for ${cat} is ${time} by ${spelunker}.`);
+      bot.reply(message,
+                `World record for ${cat} is ${time} by ${spelunker}.`);
     }
   },
   {
@@ -69,15 +72,16 @@ const actions = [
 
 bot.on('message', function(message) {
   actions.forEach(function(action) {
-    let match = action.pattern.search(message.content);
-    if (match) {
+    let groups = action.pattern.exec(message.content);
+    if (groups) {
       if (typeof action.reply === 'string') {
         bot.reply(message, action.reply);
       } else {
-        action.reply(message, match);
+        action.reply(message, groups);
       }
     }
   });
 });
 
 bot.loginWithToken(auth.token);
+module.exports.bot = bot;
