@@ -2,7 +2,7 @@ const discord = require('discord.js');
 const difflib = require('difflib');
 const twitch = require('twitch-api');
 
-const auth = require('auth.js');
+const auth = require('./auth');
 
 const bot = discord.Client();
 
