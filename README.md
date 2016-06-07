@@ -1,5 +1,5 @@
 # Lunkybot
-A spelunky community bot for discordapp.com.
+A spelunky community bot for discordapp.com. ![Lunkybot Avatar](icon.png)
 
 This bot is a simple discord bot so that we can do things like nightbot
 but in discord. We have a long list of commands that do things like show
