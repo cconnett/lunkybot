@@ -4,7 +4,7 @@ const twitch = require('twitch-api');
 
 const auth = require('./auth');
 
-const bot = discord.Client();
+const bot = new discord.Client();
 
 const actions = [
   {
