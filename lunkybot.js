@@ -31,7 +31,9 @@ const actions = [
       if (!matches) {
         bot.reply(message, `What category is ${category}?`);
       }
-      bot.reply(message, `da wr`);
+      let cat = matches[0];
+      var [time, spelunker] = lookupWr(cat);
+      bot.reply(message, `World record for ${cat} is ${time} by ${spelunker}.`);
     }
   },
   {
