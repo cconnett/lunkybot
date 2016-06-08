@@ -20,6 +20,7 @@
     "difflib": "^0.2.4",
     "discord.js": "^7.0.1",
     "node-feedparser": "^1.0.1",
+    "request-promise": "^3.0.0",
     "twitch-api": "^0.4.3"
   }
 }

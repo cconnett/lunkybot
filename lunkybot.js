@@ -1,26 +1,39 @@
-const discord = require('discord.js');
 const difflib = require('difflib');
+const discord = require('discord.js');
+const get = require('request-promise');
 const twitch = require('twitch-api');
 
 const auth = require('./auth');
-
-const bot = new discord.Client();
 
 const actions = [
   {
     pattern: /!stats (\w+)/,
     reply: function(message, groups) {
-      let name = groups[1];
-      return null;
-      let spelunkers = getSpelunkersFromMossranking();
-      let matches = difflib.getCloseMatches(name, spelunkers);
-      if (!matches) {
-        bot.reply(
-            message,
-            `I couldn't find a spelunker named ${name}`);
-      }
-      let spelunker = matches[0];
-      bot.reply(message, `mossrankingurl`);
+      let arg = groups[1];
+      get('http://mossranking.mooo.com/api/userlist.php')
+          .then(function(json) {
+            let players;
+            try {
+              players = JSON.parse(json);
+            } catch (e) {
+              bot.reply(message, 'Something went wrong.');
+              return;
+            }
+            let lowerPlayerToId = {};
+            for (let[id, name, country, sprite, twitch] of players.slice(1)) {
+              lowerPlayerToId[name.toLowerCase()] = id;
+            }
+            let matches = difflib.getCloseMatches(arg.toLowerCase(),
+                                                  Object.keys(lowerPlayerToId));
+            if (!matches) {
+              bot.reply(
+                  message,
+                  `I couldn't find a spelunker named ${arg}`);
+            }
+            bot.reply(message,
+                      '<http://mossranking.mooo.com/stats.php?id_user=' +
+                          `${lowerPlayerToId[matches[0]]}>`);
+          });
     }
   },
   {
@@ -71,7 +84,7 @@ const actions = [
   {pattern: /!cat/, reply: function() {}},
 ];
 
-
+const bot = new discord.Client();
 bot.on('message', function(message) {
   actions.forEach(function(action) {
     let groups = action.pattern.exec(message.content);
@@ -86,4 +99,4 @@ bot.on('message', function(message) {
 });
 
 bot.loginWithToken(auth.token);
-module.exports.bot = bot;
+module.exports.actions = actions;
