@@ -1,9 +1,9 @@
-const difflib = require('difflib');
 const discord = require('discord.js');
 const get = require('request-promise');
 const twitch = require('twitch-api');
 
 const auth = require('./auth');
+const matcher = require('./matcher');
 
 const actions = [
   {
@@ -14,25 +14,10 @@ const actions = [
           .then(function(json) {
             let players;
             try {
-              players = JSON.parse(json);
+              bot.reply(message, statsMessage(JSON.parse(json), arg));
             } catch (e) {
               bot.reply(message, 'Something went wrong.');
-              return;
             }
-            let lowerPlayerToId = {};
-            for (let[id, name, country, sprite, twitch] of players.slice(1)) {
-              lowerPlayerToId[name.toLowerCase()] = id;
-            }
-            let matches = difflib.getCloseMatches(arg.toLowerCase(),
-                                                  Object.keys(lowerPlayerToId));
-            if (!matches) {
-              bot.reply(
-                  message,
-                  `I couldn't find a spelunker named ${arg}`);
-            }
-            bot.reply(message,
-                      '<http://mossranking.mooo.com/stats.php?id_user=' +
-                          `${lowerPlayerToId[matches[0]]}>`);
           });
     }
   },
@@ -41,7 +26,7 @@ const actions = [
     reply: function(message, groups) {
       let category = groups[1];
       let categories = [];
-      let matches = difflib.getCloseMatches(category, categories);
+      let matches = matcher.getClosestMatch(category, categories);
       if (!matches) {
         bot.reply(message, `What category is ${category}?`);
       }
@@ -84,6 +69,18 @@ const actions = [
   {pattern: /!cat/, reply: function() {}},
 ];
 
+function statsMessage(players, arg) {
+  let lowerPlayerToId = {};
+  for (let[id, name, country, sprite, twitch] of players.slice(1)) {
+    lowerPlayerToId[name.toLowerCase()] = id;
+  }
+  let match =
+      matcher.getClosestMatch(arg.toLowerCase(), Object.keys(lowerPlayerToId));
+  return '<http://mossranking.mooo.com/stats.php?id_user=' +
+         `${lowerPlayerToId[match]}>`;
+}
+
+
 const bot = new discord.Client();
 bot.on('message', function(message) {
   actions.forEach(function(action) {
@@ -100,3 +97,4 @@ bot.on('message', function(message) {
 
 bot.loginWithToken(auth.token);
 module.exports.actions = actions;
+module.exports.statsMessage = statsMessage;
