@@ -20,7 +20,6 @@ module.exports.getClosestMatch = function(left, pool) {
 function score(left, right) {
   let blocks =
       new difflib.SequenceMatcher(null, left, right).getMatchingBlocks();
-  let r = blocks.map(([a, b, l]) => l * l).reduce((prev, cur) => prev + cur) /
-          (left.length + right.length);
-  return r;
+  return blocks.map(([a, b, l]) => l * l).reduce((prev, cur) => prev + cur) /
+         (left.length + right.length);
 }

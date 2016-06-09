@@ -1,3 +1,6 @@
+require('es6-promise').polyfill();
+require('promise.prototype.finally');
+
 const discord = require('discord.js');
 const get = require('request-promise');
 const twitch = require('twitch-api');
@@ -7,34 +10,25 @@ const matcher = require('./matcher');
 
 const actions = [
   {
-    pattern: /!stats (\w+)/,
+    pattern: /!(stats|wr) (.*)/,
     reply: function(message, groups) {
-      let arg = groups[1];
-      get('http://mossranking.mooo.com/api/userlist.php')
-          .then(function(json) {
-            let players;
-            try {
-              bot.reply(message, statsMessage(JSON.parse(json), arg));
-            } catch (e) {
-              bot.reply(message, 'Something went wrong.');
-            }
-          });
-    }
-  },
-  {
-    pattern: /!wr (\S+)/,
-    reply: function(message, groups) {
-      let category = groups[1];
-      let categories = [];
-      let matches = matcher.getClosestMatch(category, categories);
-      if (!matches) {
-        bot.reply(message, `What category is ${category}?`);
-      }
-      let cat = matches[0];
-      return;
-      var [time, spelunker] = lookupWr(cat);
-      bot.reply(message,
-                `World record for ${cat} is ${time} by ${spelunker}.`);
+      var [_, command, arg] = groups;
+      let params = {
+        stats: {
+          url: 'http://mossranking.mooo.com/api/userlist.php',
+          fn: statsMessage
+        },
+        wr: {url: 'http://mossranking.mooo.com/api/catdef.php', fn: wrMessage}
+      };
+      get(params[command].url).then(function(json) {
+        try {
+          params[command]
+              .fn(JSON.parse(json), arg)
+              .then(text => bot.reply(message, text));
+        } catch (e) {
+          bot.reply(message, 'Something went wrong.');
+        }
+      });
     }
   },
   {
@@ -71,15 +65,38 @@ const actions = [
 
 function statsMessage(players, arg) {
   let lowerPlayerToId = {};
-  for (let[id, name, country, sprite, twitch] of players.slice(1)) {
+  for (let [id, name, country, sprite, twitch] of players.slice(1)) {
     lowerPlayerToId[name.toLowerCase()] = id;
   }
   let match =
       matcher.getClosestMatch(arg.toLowerCase(), Object.keys(lowerPlayerToId));
-  return '<http://mossranking.mooo.com/stats.php?id_user=' +
-         `${lowerPlayerToId[match]}>`;
+  return new Promise(
+      (resolve, reject) => resolve(
+          '<http://mossranking.mooo.com/stats.php?id_user=' +
+          `${lowerPlayerToId[match]}>`));
 }
 
+function wrMessage(categories, arg) {
+  let lowerCatToId = {};
+  for (let [id, category, shortname] of categories.slice(1)) {
+    lowerCatToId[category.toLowerCase()] = id;
+  }
+  let catId = lowerCatToId[matcher.getClosestMatch(
+      arg.toLowerCase(), Object.keys(lowerCatToId))];
+  return new Promise(function(resolve, reject) {
+    let jsonPromise =
+        get(`http://mossranking.mooo.com/api/getwr.php?cat=${catId}`);
+    jsonPromise.then(function(json) {
+      let catName = categories[catId][1];
+      try {
+        var [spelunker, score, time] = JSON.parse(json);
+      } catch (e) {
+        reject(`I don't know what the record is for ${catName}}.`);
+      }
+      resolve(`The world record for ${catName} is ${time} by ${spelunker}.`);
+    });
+  });
+}
 
 const bot = new discord.Client();
 bot.on('message', function(message) {
@@ -98,3 +115,5 @@ bot.on('message', function(message) {
 bot.loginWithToken(auth.token);
 module.exports.actions = actions;
 module.exports.statsMessage = statsMessage;
+module.exports.wrMessage = wrMessage;
+module.exports.get = get;
