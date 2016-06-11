@@ -33,7 +33,7 @@ const actions = [
   },
   {
     pattern: /!death/,
-    reply: 'Those damn aliens in a pot get me every time ¯\_(ツ)_/¯'
+    reply: 'Those damn aliens in a pot get me every time ¯\\_(ツ)_/¯'
   },
   {
     pattern: /!(info|commands)/,
