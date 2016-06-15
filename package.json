@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "jasmine": "^2.4.1",
-    "promise.prototype.finally": "^1.0.1"
+    "promise.prototype.finally": "^1.0.1",
+    "rewire": "^2.5.1"
   }
 }

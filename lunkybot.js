@@ -113,7 +113,3 @@ bot.on('message', function(message) {
 });
 
 bot.loginWithToken(auth.token);
-module.exports.actions = actions;
-module.exports.statsMessage = statsMessage;
-module.exports.wrMessage = wrMessage;
-module.exports.get = get;
