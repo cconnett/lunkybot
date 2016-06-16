@@ -55,7 +55,8 @@ const actions = [
   {pattern: /!cratechances/, reply: '<http://spelunky.wikia.com/wiki/Crate>'},
   {pattern: /!grooomp/, reply: 'ssssssssstop'},
   {pattern: /!curt/, reply: 'c:'},
-  {pattern: /!brut/, reply: 'ʕ•ᴥ•ʔ meow ʕ•ᴥ•ʔ'},
+  {pattern: /!brut /, reply: 'ʕ•ᴥ•ʔ meow ʕ•ᴥ•ʔ'},
+  {pattern: /!kinni/, reply: 'O__O'},
   {
     pattern: /!leaderboards/,
     reply: '<http://mossranking.mooo.com/records.php>'
