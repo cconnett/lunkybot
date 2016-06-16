@@ -86,7 +86,7 @@ let runsData = [
   ],
 ];
 
-fdescribe('Recent runs handler', function() {
+describe('Recent runs handler', function() {
   let zaxMessage = 'theZaxanator completed a All Shortcuts + Olmec run! ' +
       'The time was 23:02.096.';
   let brutMessage = 'Brutwarst set a new World Record for Low%! ' +
