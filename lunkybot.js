@@ -122,8 +122,10 @@ const bot = new Lunkybot([
   },
   {
     pattern: /!wr (.*)/,
-    reply: function() {
-      bot.fetch('http://mossranking.mooo.com/api/catdef.php').then(wrMessage);
+    reply: function(groups) {
+      var [_, arg] = groups;
+      bot.fetch('http://mossranking.mooo.com/api/catdef.php')
+          .then(categories => wrMessage(categories, arg));
     }
   },
   {
