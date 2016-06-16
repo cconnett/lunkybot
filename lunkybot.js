@@ -115,7 +115,7 @@ function wrMessage(categories, arg) {
 const bot = new Lunkybot([
   {
     pattern: /!stats (\S+)/,
-    reply: function(message, groups) {
+    reply: function(groups) {
       let [input, arg] = groups;
       return bot.fetch('http://mossranking.mooo.com/api/userlist.php')
           .then(categories => statsMessage(categories, arg));
