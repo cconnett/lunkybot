@@ -4,7 +4,8 @@
   "description": "Community bot for Spelunky.",
   "main": "lunkybot.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "autotest": "./node_modules/.bin/supervisor -q -n exit -x ./node_modules/.bin/jasmine lunkybot_test.js",
+    "test": "jasmine lunkybot_test.js"
   },
   "repository": {
     "type": "git",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "jasmine": "^2.4.1",
     "promise.prototype.finally": "^1.0.1",
-    "rewire": "^2.5.1"
+    "rewire": "^2.5.1",
+    "supervisor": "^0.11.0"
   }
 }
