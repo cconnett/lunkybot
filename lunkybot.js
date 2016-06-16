@@ -25,7 +25,8 @@ class Lunkybot {
           if (typeof action.reply === 'string') {
             this.client.reply(message, action.reply);
           } else {
-            action.reply(message, groups);
+            action.reply(groups).then(
+                answer => this.client.reply(message, answer));
           }
         }
       });
@@ -114,17 +115,17 @@ function wrMessage(categories, arg) {
 const bot = new Lunkybot([
   {
     pattern: /!stats (\S+)/,
-    reply: function(groups) {
-      var [_, arg] = groups;
-      bot.fetch('http://mossranking.mooo.com/api/userlist.php')
-          .then(statsMessage);
+    reply: function(message, groups) {
+      let [input, arg] = groups;
+      return bot.fetch('http://mossranking.mooo.com/api/userlist.php')
+          .then(categories => statsMessage(categories, arg));
     }
   },
   {
     pattern: /!wr (.*)/,
     reply: function(groups) {
-      var [_, arg] = groups;
-      bot.fetch('http://mossranking.mooo.com/api/catdef.php')
+      let [input, arg] = groups;
+      return bot.fetch('http://mossranking.mooo.com/api/catdef.php')
           .then(categories => wrMessage(categories, arg));
     }
   },
@@ -158,7 +159,6 @@ const bot = new Lunkybot([
     pattern: /!leaderboards/,
     reply: '<http://mossranking.mooo.com/records.php>'
   },
-  {pattern: /!cat/, reply: function() {}},
 ]);
 
 module.exports.Lunkybot = Lunkybot;
