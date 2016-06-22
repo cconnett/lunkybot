@@ -2,11 +2,9 @@ const rewire = require('rewire');
 const lunkybot = rewire('./lunkybot');
 
 // Get unexported symbols for testing and spying.
-const statsMessage = lunkybot.__get__('statsMessage');
-const wrMessage = lunkybot.__get__('wrMessage');
 const recentRunsChannelId = lunkybot.__get__('recentRunsChannelId');
 
-let statsData = [
+let userData = [
   'headers', [1, 'kinnijup', null, null, null],
   [2, 'saturnin55', null, null, null], [3, 'samots', null, null, null]
 ];
@@ -19,14 +17,14 @@ let catData = [
 
 describe('The matching algorithm', function() {
   it(`should match 'sat' to 'saturnin55'`, function(done) {
-    statsMessage(statsData, 'sat')
+    lunkybot.bot.statsMessage(userData, 'sat')
         .then(
             msg => expect(msg).toEqual(
                 '<http://mossranking.mooo.com/stats.php?id_user=2>'))
         .finally(done);
   });
   it(`should match 'kinni' to 'kinnijup'`, function(done) {
-    statsMessage(statsData, 'kinni')
+    lunkybot.bot.statsMessage(userData, 'kinni')
         .then(
             msg => expect(msg).toEqual(
                 '<http://mossranking.mooo.com/stats.php?id_user=1>'))
@@ -34,32 +32,41 @@ describe('The matching algorithm', function() {
   });
 
   beforeEach(function() {
-    spyOn(lunkybot.bot, 'fetch')
-        .and.returnValue(
-            new Promise((res, rej) => res('["Kinnijup","99716","1:39.716"]')));
+    lunkybot.bot.fetch = url => {
+      if (/getwr/.exec(url)) {
+        return Promise.resolve(["Kinnijup", "99716", "1:39.716"]);
+      }
+      if (/userlist/.exec(url)) {
+        return Promise.resolve(userData);
+      }
+      if (/catdef/.exec(url)) {
+        return Promise.resolve(catData);
+      }
+      return Promise.reject('bad url passed to test function');
+    };
   });
-  it(`should match 'egg' to 'Eggplant%`, function(done) {
-    wrMessage(catData, 'egg')
+  it(`should match 'egg' to 'Eggplant%'`, function(done) {
+    lunkybot.bot.wrMessage(catData, 'egg')
         .then(msg => expect(msg).toMatch('The world record for Eggplant% is'))
         .finally(done);
   });
-  it(`should match 'low' to 'Low%`, function(done) {
-    wrMessage(catData, 'low')
+  it(`should match 'low' to 'Low%'`, function(done) {
+    lunkybot.bot.wrMessage(catData, 'low')
         .then(msg => expect(msg).toMatch('The world record for Low% is'))
         .finally(done);
   });
-  it(`should match 'lowhell' to 'Low% Hell`, function(done) {
-    wrMessage(catData, 'lowhell')
+  it(`should match 'lowhell' to 'Low% Hell'`, function(done) {
+    lunkybot.bot.wrMessage(catData, 'lowhell')
         .then(msg => expect(msg).toMatch('The world record for Low% Hell is'))
         .finally(done);
   });
-  it(`should match 'lh' to 'Low% Hell`, function(done) {
-    wrMessage(catData, 'lh')
+  it(`should match 'lh' to 'Low% Hell'`, function(done) {
+    lunkybot.bot.wrMessage(catData, 'lh')
         .then(msg => expect(msg).toMatch('The world record for Low% Hell is'))
         .finally(done);
   });
-  it(`should match 'no gold' to 'No Gold`, function(done) {
-    wrMessage(catData, 'no gold')
+  it(`should match 'no gold' to 'No Gold'`, function(done) {
+    lunkybot.bot.wrMessage(catData, 'no gold')
         .then(msg => expect(msg).toMatch('The world record for No Gold is'))
         .finally(done);
   });
@@ -87,14 +94,14 @@ let runsData = [
 ];
 
 describe('Recent runs handler', function() {
-  let zaxMessage = 'theZaxanator completed a All Shortcuts + Olmec run! ' +
+  let zaxMessage = 'theZaxanator completed an All Shortcuts + Olmec run! ' +
       'The time was 23:02.096.';
   let brutMessage = 'Brutwarst set a new World Record for Low%! ' +
       'The time was 1:40.419.';
   let krilleMessage = 'krille71 completed a Score run! ' +
       'The score was $3,000,000.';
 
-  beforeEach(function(done) {
+  beforeEach(done => {
     spyOn(lunkybot.bot, 'fetch');
     lunkybot.bot.client = jasmine.createSpyObj('client', [
       'loginWithToken', 'channels', 'sendMessage', 'on', 'reply',
@@ -106,7 +113,8 @@ describe('Recent runs handler', function() {
     lunkybot.bot.start().then(lunkybot.bot.postNewRuns([])).then(done);
     lunkybot.bot.fetch.and.returnValue(Promise.resolve(runsData));
   });
-  it(`should post a new run`, function(done) {
+
+  it(`should post a new run`, done => {
     lunkybot.bot.fetchAndPost()
         .then(() => {
           expect(lunkybot.bot.client.sendMessage)
@@ -114,7 +122,8 @@ describe('Recent runs handler', function() {
         })
         .then(done);
   });
-  it(`should say if it's a world record`, function(done) {
+
+  it(`should say if it's a world record`, done => {
     lunkybot.bot.fetchAndPost()
         .then(() => {
           expect(lunkybot.bot.client.sendMessage)
@@ -122,9 +131,12 @@ describe('Recent runs handler', function() {
         })
         .then(done);
   });
-  it(`shouldn't post duplicate run`, function(done) {
+
+  it(`shouldn't post a duplicate run`, done => {
     lunkybot.bot.client.getChannelLogs = () => Promise.resolve([
-      {content: zaxMessage}, {content: brutMessage}, {content: krilleMessage}
+      {content: zaxMessage, timestamp: 923},
+      {content: brutMessage, timestamp: 120},
+      {content: krilleMessage, timestamp: 10103}
     ]);
     lunkybot.bot.fetchAndPost()
         .then(() => {
@@ -132,14 +144,42 @@ describe('Recent runs handler', function() {
         })
         .then(done);
   });
-  it(`should format score`, function(done) {
-    lunkybot.bot.client.channels[0].getChannelLogs = () =>
-        Promise.resolve([{content: zaxMessage}, {content: brutMessage}]);
+
+  it(`shouldn't post runs older than the oldest message in the logs`, done => {
+    lunkybot.bot.client.getChannelLogs = () =>
+        Promise.resolve([{content: krilleMessage, timestamp: 1465935555555}]);
+    lunkybot.bot.fetchAndPost()
+        .then(() => {
+          expect(lunkybot.bot.client.sendMessage)
+              .toHaveBeenCalledWith(recentRunsChannelId, zaxMessage);
+        })
+        .catch(console.log)
+        .finally(done);
+  });
+  it(`should use 'an' for categories starting with a vowel`, done => {
+    lunkybot.bot.client.getChannelLogs = () => Promise.resolve([
+      {content: brutMessage, timestamp: 95},
+      {content: krilleMessage, timestamp: 9238}
+    ]);
+    lunkybot.bot.fetchAndPost()
+        .then(() => {
+          expect(lunkybot.bot.client.sendMessage.calls.argsFor(0)[1])
+              .toMatch('an All');
+        })
+        .catch(console.log)
+        .finally(done);
+  });
+
+  it(`should format score`, done => {
+    lunkybot.bot.client.channels[0].getChannelLogs = () => Promise.resolve([
+      {content: zaxMessage, timestamp: 2},
+      {content: brutMessage, timestamp: 5}
+    ]);
     lunkybot.bot.fetchAndPost()
         .then(() => {
           expect(lunkybot.bot.client.sendMessage)
               .toHaveBeenCalledWith(recentRunsChannelId, krilleMessage);
         })
-        .then(done);
+        .finally(done);
   });
 });

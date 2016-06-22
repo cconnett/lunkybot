@@ -46,6 +46,34 @@ class Lunkybot {
     });
   }
 
+
+  statsMessage(players, arg) {
+    let lowerPlayerToId = {};
+    for (let [id, name, country, sprite, twitch] of players.slice(1)) {
+      lowerPlayerToId[name.toLowerCase()] = id;
+    }
+    let match = matcher.getClosestMatch(
+        arg.toLowerCase(), Object.keys(lowerPlayerToId));
+    return Promise.resolve(
+        `<http://mossranking.mooo.com/stats.php?id_user=${lowerPlayerToId[match]}>`);
+  }
+
+  wrMessage(categories, arg) {
+    let lowerCatToId = {};
+    for (let [id, category, shortname] of categories.slice(1)) {
+      lowerCatToId[category.toLowerCase()] = id;
+    }
+    let catId = lowerCatToId[matcher.getClosestMatch(
+        arg.toLowerCase(), Object.keys(lowerCatToId))];
+    let catName = categories[catId][1];
+    return this.fetch(`http://mossranking.mooo.com/api/getwr.php?cat=${catId}`)
+        .then(data => {
+          let [spelunker, score, time] = data;
+          return `The world record for ${catName} is ${time} by ${spelunker}.`;
+        });
+  }
+
+
   fetchAndPost() {
     return this.fetch('http://mossranking.mooo.com/api/recent_runs.php')
         .then(r => Promise.all(this.postNewRuns(r)));
@@ -57,10 +85,11 @@ class Lunkybot {
               timerun_hf, world, level, flag_wr, link, comment] of recentRuns
              .slice(1)) {
       let content = '';
+      let article = /^[aeiou]/i.exec(category) ? 'an' : 'a';
       if (parseInt(flag_wr)) {
         content += `${username} set a new World Record for ${category}! `;
       } else {
-        content += `${username} completed a ${category} run! `;
+        content += `${username} completed ${article} ${category} run! `;
       }
       if (parseInt(scorerun)) {
         let score = new Intl
@@ -77,7 +106,12 @@ class Lunkybot {
       logs.then(logs => {
         let previousMessage =
             logs.filter(message => message.content == content);
-        if (previousMessage.length == 0) {
+        let smallestTimestamp = Math.max(
+            0, Math.min(
+                   logs.map(log => log.timestamp) || Number.MAX_SAFE_INTEGER) ||
+                0);
+        if (previousMessage.length == 0 &&
+            Date.parse(submitted) > smallestTimestamp) {
           results.push(this.client.sendMessage(recentRunsChannelId, content));
         }
       });
@@ -86,40 +120,13 @@ class Lunkybot {
   }
 }
 
-function statsMessage(players, arg) {
-  let lowerPlayerToId = {};
-  for (let [id, name, country, sprite, twitch] of players.slice(1)) {
-    lowerPlayerToId[name.toLowerCase()] = id;
-  }
-  let match =
-      matcher.getClosestMatch(arg.toLowerCase(), Object.keys(lowerPlayerToId));
-  return Promise.resolve(
-      `<http://mossranking.mooo.com/stats.php?id_user=${lowerPlayerToId[match]}>`);
-}
-
-function wrMessage(categories, arg) {
-  let lowerCatToId = {};
-  for (let [id, category, shortname] of categories.slice(1)) {
-    lowerCatToId[category.toLowerCase()] = id;
-  }
-  let catId = lowerCatToId[matcher.getClosestMatch(
-      arg.toLowerCase(), Object.keys(lowerCatToId))];
-  let catName = categories[catId][1];
-  return get(`http://mossranking.mooo.com/api/getwr.php?cat=${catId}`)
-      .then(json => {
-        var [spelunker, score, time] = JSON.parse(json);
-        return `The world record for ${catName} is ${time} by ${spelunker}.`;
-      })
-      .catch(() => `I don't know what the record is for ${catName}}.`);
-};
-
 const bot = new Lunkybot([
   {
     pattern: /!stats (\S+)/,
     reply: function(groups) {
       let [input, arg] = groups;
       return bot.fetch('http://mossranking.mooo.com/api/userlist.php')
-          .then(categories => statsMessage(categories, arg));
+          .then(categories => bot.statsMessage(categories, arg));
     }
   },
   {
@@ -127,7 +134,7 @@ const bot = new Lunkybot([
     reply: function(groups) {
       let [input, arg] = groups;
       return bot.fetch('http://mossranking.mooo.com/api/catdef.php')
-          .then(categories => wrMessage(categories, arg));
+          .then(categories => bot.wrMessage(categories, arg));
     }
   },
   {
