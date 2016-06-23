@@ -150,6 +150,8 @@ describe('Recent runs handler', function() {
         Promise.resolve([{content: krilleMessage, timestamp: 1465935555555}]);
     lunkybot.bot.fetchAndPost()
         .then(() => {
+          // krilleMessage is in the logs; brut's run is older than the
+          // timestamp given here; zax message should appear.
           expect(lunkybot.bot.client.sendMessage)
               .toHaveBeenCalledWith(recentRunsChannelId, zaxMessage);
         })
