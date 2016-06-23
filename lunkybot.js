@@ -153,7 +153,7 @@ const bot = new Lunkybot([
   {pattern: /!reddit/, reply: '<https://www.reddit.com/r/spelunky>'},
   {pattern: /!mossranking/, reply: '<http://mossranking.mooo.com/>'},
   {pattern: /!news/, reply: '<http://mossranking.mooo.com/news/>'},
-  {pattern: /!rng/, reply: 'ಠ\_ಠ THIS GAME MAN ಠ\_ಠ'},
+  {pattern: /!rng/, reply: 'ಠ\\_ಠ THIS GAME MAN ಠ\\_ಠ'},
   {pattern: /!cratechances/, reply: '<http://spelunky.wikia.com/wiki/Crate>'},
   {pattern: /!grooomp/, reply: 'ssssssssstop'},
   {pattern: /!curt/, reply: 'c:'},
