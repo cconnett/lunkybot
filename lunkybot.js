@@ -33,11 +33,15 @@ class Lunkybot {
     });
     this._postNewRunsHandle =
         setInterval(() => this.fetchAndPost(), 1000 * 60 * 15);
-    return this.client.loginWithToken(auth.token);
+    this._loginHandle = setInterval(
+        () => this.client.loginWithToken(auth.token), 1000 * 60 * 60 * 12);
   }
 
 
-  stop() { clearInterval(this._postNewRunsHandle); }
+  stop() {
+    clearInterval(this._postNewRunsHandle);
+    clearInterval(this._loginHandle);
+  }
 
   fetch(url) {
     return get(url).then(JSON.parse).catch(e => {
