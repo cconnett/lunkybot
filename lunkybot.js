@@ -172,6 +172,6 @@ const bot = new Lunkybot([
 module.exports.Lunkybot = Lunkybot;
 module.exports.bot = bot;
 
-if (require.main === module) {
+if (require.main == module) {
   bot.start().catch(console.log).then(() => bot.fetchAndPost());
 }
