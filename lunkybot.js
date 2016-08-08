@@ -85,9 +85,10 @@ class Lunkybot {
   postNewRuns(recentRuns) {
     let results = [];
     let logs = this.client.getChannelLogs(recentRunsChannelId);
-    for (let [id_user, username, cat, category, submitted, scorerun, timerun,
+    for (let
+             [id_user, username, cat, category, submitted, scorerun, timerun,
               timerun_hf, world, level, flag_wr, link, comment] of recentRuns
-             .slice(1)) {
+                 .slice(1)) {
       let content = '';
       let article = /^[aeiou]/i.exec(category) ? 'an' : 'a';
       if (parseInt(flag_wr)) {
@@ -98,8 +99,8 @@ class Lunkybot {
       if (parseInt(scorerun)) {
         let score = new Intl
                         .NumberFormat('en-US', {
-                          style: "currency",
-                          currency: "usd",
+                          style: 'currency',
+                          currency: 'usd',
                           minimumFractionDigits: 0
                         })
                         .format(parseInt(scorerun));
