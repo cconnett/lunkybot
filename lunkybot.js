@@ -55,7 +55,7 @@ class Lunkybot {
     let match = matcher.getClosestMatch(
         arg.toLowerCase(), Object.keys(lowerPlayerToId));
     return Promise.resolve(
-        `<http://mossranking.mooo.com/stats.php?id_user=${lowerPlayerToId[match]}>`);
+        `<http://mossranking.com/stats.php?id_user=${lowerPlayerToId[match]}>`);
   }
 
   wrMessage(categories, arg) {
@@ -66,16 +66,15 @@ class Lunkybot {
     let catId = lowerCatToId[matcher.getClosestMatch(
         arg.toLowerCase(), Object.keys(lowerCatToId))];
     let catName = categories[catId][1];
-    return this.fetch(`http://mossranking.mooo.com/api/getwr.php?cat=${catId}`)
+    return this.fetch(`http://mossranking.com/api/getwr.php?cat=${catId}`)
         .then(data => {
           let [spelunker, score, time] = data;
           return `The world record for ${catName} is ${time} by ${spelunker}.`;
         });
   }
 
-
   fetchAndPost() {
-    return this.fetch('http://mossranking.mooo.com/api/recent_runs.php')
+    return this.fetch('http://mossranking.com/api/recent_runs.php')
         .then(r => Promise.all(this.postNewRuns(r)));
   }
   postNewRuns(recentRuns) {
@@ -125,7 +124,7 @@ const bot = new Lunkybot([
     pattern: /!stats (\S+)/,
     reply: function(groups) {
       let [input, arg] = groups;
-      return bot.fetch('http://mossranking.mooo.com/api/userlist.php')
+      return bot.fetch('http://mossranking.com/api/userlist.php')
           .then(categories => bot.statsMessage(categories, arg));
     }
   },
@@ -133,7 +132,7 @@ const bot = new Lunkybot([
     pattern: /!wr (.*)/,
     reply: function(groups) {
       let [input, arg] = groups;
-      return bot.fetch('http://mossranking.mooo.com/api/catdef.php')
+      return bot.fetch('http://mossranking.com/api/catdef.php')
           .then(categories => bot.wrMessage(categories, arg));
     }
   },
@@ -151,18 +150,15 @@ const bot = new Lunkybot([
         '<https://www.reddit.com/r/spelunky/comments/46n8q3/spelunky_discord_channel/>'
   },
   {pattern: /!reddit/, reply: '<https://www.reddit.com/r/spelunky>'},
-  {pattern: /!mossranking/, reply: '<http://mossranking.mooo.com/>'},
-  {pattern: /!news/, reply: '<http://mossranking.mooo.com/news/>'},
+  {pattern: /!mossranking/, reply: '<http://mossranking.com/>'},
+  {pattern: /!news/, reply: '<http://mossranking.com/news/>'},
   {pattern: /!rng/, reply: 'ಠ\\_ಠ THIS GAME MAN ಠ\\_ಠ'},
   {pattern: /!cratechances/, reply: '<http://spelunky.wikia.com/wiki/Crate>'},
   {pattern: /!grooomp/, reply: 'ssssssssstop'},
   {pattern: /!curt/, reply: 'c:'},
   {pattern: /!brut /, reply: 'ʕ•ᴥ•ʔ meow ʕ•ᴥ•ʔ'},
   {pattern: /!kinni/, reply: 'O__O'},
-  {
-    pattern: /!leaderboards/,
-    reply: '<http://mossranking.mooo.com/records.php>'
-  },
+  {pattern: /!leaderboards/, reply: '<http://mossranking.com/records.php>'},
 ]);
 
 module.exports.Lunkybot = Lunkybot;
