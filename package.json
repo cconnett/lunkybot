@@ -23,14 +23,14 @@
     "es6-promise": "^3.2.1",
     "irc": "^0.5.0",
     "node-feedparser": "^1.0.1",
-    "promise.prototype.finally": "^1.0.1",
+    "promise.prototype.finally": "^2.0.0",
     "request-promise": "^3.0.0",
-    "sqlite3": "^3.1.8",
+    "sqlite": "^2.2.2",
     "twitch-api": "^0.4.3"
   },
   "devDependencies": {
     "jasmine": "^2.4.1",
-    "promise.prototype.finally": "^1.0.1",
+    "promise.prototype.finally": "^2.0.0",
     "rewire": "^2.5.1",
     "supervisor": "^0.11.0"
   }

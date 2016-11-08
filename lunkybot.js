@@ -1,10 +1,10 @@
 require('es6-promise').polyfill();
 require('promise.prototype.finally');
 
-const discord = require('discord.js');
+const discord = require('discord.io');
 const get = require('request-promise');
 const irc = require('irc');
-const sqlite3 = require('sqlite3');
+const sqlite = require('sqlite');
 const twitch = require('twitch-api');
 
 const auth = require('./auth');
@@ -30,12 +30,36 @@ const recentRunsChannelId = '190522354114363392';
 class Lunkybot {
   constructor(actions) {
     this.actions = actions;
-    this.db = new sqlite3.Database('lunkybot.db');
-    this.db.run('CREATE TABLE IF NOT EXISTS ircChannels (channel TEXT)');
-    this.db.run('CREATE TABLE IF NOT EXISTS runsNotified (signature TEXT)');
-    this.db.run(
-        'CREATE INDEX IF NOT EXISTS runsSigs ON runsNotified (signature)');
+    this.db = null;
+    this.discord = null;
+    this.irc = null;
+    this._loginHandle = null;
+    this._postNewRunsHandle = null;
+  }
 
+  start() {
+    process.on('SIGINT', this.stop);
+
+    sqlite.open('lunkybot.db')
+        .then(db => {
+          this.db = db;
+        })
+        .then(() => {
+          return this.db.run(
+              'CREATE TABLE IF NOT EXISTS ircChannels (channel TEXT)');
+        })
+        .then(() => {
+          return this.db.run(
+              'CREATE TABLE IF NOT EXISTS runsNotified (signature TEXT)');
+        })
+        .then(() => {
+          return this.db.run(
+              'CREATE INDEX IF NOT EXISTS runsSigs ON runsNotified (signature)');
+        })
+        .then(() => this.fetchAndPost())
+        .catch(console.error);
+    this._postNewRunsHandle =
+        setInterval(() => this.fetchAndPost(), 1000 * 60 * 15);
 
     this.discord = new discord.Client({
       autorun: true,
@@ -47,14 +71,22 @@ class Lunkybot {
       secure: false,
       debug: true,
       password: auth.ircToken,
-      autoConnect: true,
+      autoConnect: false,
     });
+    this.addDiscordHandler();
+    this.addIrcHandler();
 
-    this._loginHandle = null;
-    this._postNewRunsHandle = null;
+    // this._loginHandle =
+    //     setInterval(() => this.discord.login(auth.token), 1000 * 60 * 5);
+    // return this.discord.login(auth.token);
   }
 
-  start() {
+  stop() {
+    clearInterval(this._postNewRunsHandle);
+    clearInterval(this._loginHandle);
+  }
+
+  addDiscordHandler() {
     this.discord.on('message', (user, userId, channelId, message, event) => {
       this.actions.forEach(action => {
         let groups = action.pattern.exec(message);
@@ -73,6 +105,9 @@ class Lunkybot {
         }
       });
     });
+  }
+
+  addIrcHandler() {
     this.irc.addListener('message', (from, to, message) => {
       this.actions.forEach(action => {
         let groups = action.pattern.exec(message);
@@ -90,7 +125,8 @@ class Lunkybot {
         this.db.run(
             'INSERT OR REPLACE INTO irc VALUES (?)', '#' + from, error => {
               if (!error) {
-                self.irc.say(from, "OK, got it. To get rid of me, say 'part'.");
+                self.irc.say(
+                    from, 'OK, got it. To get rid of me, say \'part\'.');
               } else {
                 self.irc.say(from, 'I had an error: ' + error);
               }
@@ -99,7 +135,7 @@ class Lunkybot {
         let self = this;
         this.db.run('DELETE FROM irc WHERE channel = ?', '#' + from, error => {
           if (!error) {
-            self.irc.say(from, "OK, I'm out.");
+            self.irc.say(from, 'OK, I\'m out.');
           } else {
             self.irc.say(from, 'I had an error: ' + error);
           }
@@ -108,26 +144,12 @@ class Lunkybot {
     });
   }
 
-  startLoginService() {
-    this._postNewRunsHandle =
-        setInterval(() => this.fetchAndPost(), 1000 * 60 * 15);
-    this._loginHandle =
-        setInterval(() => this.discord.login(auth.token), 1000 * 60 * 5);
-    return this.discord.login(auth.token);
-  }
-
-  stop() {
-    clearInterval(this._postNewRunsHandle);
-    clearInterval(this._loginHandle);
-  }
-
   fetch(url) {
     return get(url).then(JSON.parse).catch(e => {
       console.log(e);
       return Promise.reject(e);
     });
   }
-
 
   statsMessage(players, arg) {
     let lowerPlayerToId = {};
@@ -160,11 +182,12 @@ class Lunkybot {
         .then(r => Promise.all(this.postNewRuns(r)));
   }
   postNewRuns(recentRuns) {
-    let results = [];
-    let logs = this.discord.getChannelLogs(recentRunsChannelId);
-    for (let [id_user, username, cat, category, submitted, scorerun, timerun,
+    let promises = [];
+
+    for (let
+             [id_user, username, cat, category, submitted, scorerun, timerun,
               timerun_hf, world, level, flag_wr, link, comment] of recentRuns
-             .slice(1)) {
+                 .slice(1)) {
       let content = '';
       let article = /^[aeiou]/i.exec(category) ? 'an' : 'a';
       if (parseInt(flag_wr)) {
@@ -175,8 +198,8 @@ class Lunkybot {
       if (parseInt(scorerun)) {
         let score = new Intl
                         .NumberFormat('en-US', {
-                          style: "currency",
-                          currency: "usd",
+                          style: 'currency',
+                          currency: 'usd',
                           minimumFractionDigits: 0
                         })
                         .format(parseInt(scorerun));
@@ -184,20 +207,25 @@ class Lunkybot {
       } else {
         content += `The time was ${timerun_hf}.`;
       }
-      logs.then(logs => {
-        let previousMessage =
-            logs.filter(message => message.content == content);
-        let smallestTimestamp = Math.max(
-            0, Math.min(
-                   logs.map(log => log.timestamp) || Number.MAX_SAFE_INTEGER) ||
-                0);
-        if (previousMessage.length == 0 &&
-            Date.parse(submitted) > smallestTimestamp) {
-          results.push(this.discord.sendMessage(recentRunsChannelId, content));
-        }
-      });
+      promises.push(
+          this.db
+              .get(
+                  'SELECT signature FROM runsNotified WHERE signature = ?',
+                  content)
+              .then((err, row) => {
+                if (!row) {
+                  this.discord.sendMessage({
+                    to: recentRunsChannelId,
+                    message: content,
+                  });
+                  return this.db.run(
+                      'INSERT OR REPLACE INTO runsNotified VALUES (?)',
+                      content);
+                }
+                return Promise.resolve();
+              }));
     }
-    return results;
+    return promises;
   }
 }
 
@@ -247,5 +275,5 @@ module.exports.Lunkybot = Lunkybot;
 module.exports.bot = bot;
 
 if (require.main === module) {
-  bot.start().catch(console.log).then(() => bot.fetchAndPost());
+  bot.start();
 }
