@@ -25,6 +25,7 @@
     "node-feedparser": "^1.0.1",
     "promise.prototype.finally": "^2.0.0",
     "request-promise": "^3.0.0",
+    "simplequeue": "0.0.4",
     "sqlite": "^2.2.2",
     "twitch-api": "^0.4.3"
   },

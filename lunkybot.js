@@ -4,6 +4,7 @@ require('promise.prototype.finally');
 const discord = require('discord.io');
 const get = require('request-promise');
 const irc = require('irc');
+const simplequeue = require('simplequeue');
 const sqlite = require('sqlite');
 const twitch = require('twitch-api');
 
@@ -35,15 +36,14 @@ class Lunkybot {
     this.irc = null;
     this._loginHandle = null;
     this._postNewRunsHandle = null;
+    this._discordMessageQueue = simplequeue.createQueue();
   }
 
   start() {
-    process.on('SIGINT', this.stop);
+    process.addListener('SIGINT', this.stop);
 
     sqlite.open('lunkybot.db')
-        .then(db => {
-          this.db = db;
-        })
+        .then(db => { this.db = db; })
         .then(() => {
           return this.db.run(
               'CREATE TABLE IF NOT EXISTS ircChannels (channel TEXT)');
@@ -65,6 +65,7 @@ class Lunkybot {
       autorun: true,
       token: auth.discordToken,
     });
+
     this.irc = new irc.Client('irc.twitch.tv', 'Lunkybot', {
       floodProtetion: true,
       floodProtetionDelay: 1.5,
@@ -75,15 +76,21 @@ class Lunkybot {
     });
     this.addDiscordHandler();
     this.addIrcHandler();
-
-    // this._loginHandle =
-    //     setInterval(() => this.discord.login(auth.token), 1000 * 60 * 5);
-    // return this.discord.login(auth.token);
+    this.sendOne();
   }
 
   stop() {
     clearInterval(this._postNewRunsHandle);
     clearInterval(this._loginHandle);
+  }
+
+  sendOne() {
+    this._discordMessageQueue.getMessage((err, msg) => {
+      if (msg) {
+        this.discord.sendMessage(msg);
+      }
+    });
+    setTimeout(() => this.sendOne(), 500);
   }
 
   addDiscordHandler() {
@@ -181,13 +188,13 @@ class Lunkybot {
     return this.fetch('http://mossranking.com/api/recent_runs.php')
         .then(r => Promise.all(this.postNewRuns(r)));
   }
+  sendMessage(messageObj) { this._discordMessageQueue.putMessage(messageObj); }
   postNewRuns(recentRuns) {
     let promises = [];
 
-    for (let
-             [id_user, username, cat, category, submitted, scorerun, timerun,
+    for (let [id_user, username, cat, category, submitted, scorerun, timerun,
               timerun_hf, world, level, flag_wr, link, comment] of recentRuns
-                 .slice(1)) {
+             .slice(1)) {
       let content = '';
       let article = /^[aeiou]/i.exec(category) ? 'an' : 'a';
       if (parseInt(flag_wr)) {
@@ -212,9 +219,10 @@ class Lunkybot {
               .get(
                   'SELECT signature FROM runsNotified WHERE signature = ?',
                   content)
-              .then((err, row) => {
+              .then((row, err) => {
                 if (!row) {
-                  this.discord.sendMessage({
+                  console.log('Sending message ' + content);
+                  this.sendMessage({
                     to: recentRunsChannelId,
                     message: content,
                   });
