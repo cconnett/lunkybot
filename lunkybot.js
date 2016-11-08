@@ -180,7 +180,14 @@ class Lunkybot {
     return this.fetch(`http://mossranking.com/api/getwr.php?cat=${catId}`)
         .then(data => {
           let [spelunker, score, time] = data;
-          let value = time == -1 ? score : time;
+          let scoreText = new Intl
+                              .NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'usd',
+                                minimumFractionDigits: 0
+                              })
+                              .format(parseInt(score));
+          let value = time == -1 ? scoreText : time;
           return `The world record for ${catName} is ${value} by ${spelunker}.`;
         });
   }
