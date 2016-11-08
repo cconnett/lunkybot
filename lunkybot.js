@@ -90,7 +90,7 @@ class Lunkybot {
         this.discord.sendMessage(msg);
       }
     });
-    setTimeout(() => this.sendOne(), 500);
+    setTimeout(() => this.sendOne(), 1500);
   }
 
   addDiscordHandler() {
