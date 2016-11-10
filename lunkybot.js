@@ -4,7 +4,8 @@ require('promise.prototype.finally');
 const discord = require('discord.io');
 const get = require('request-promise');
 const irc = require('irc');
-const simplequeue = require('simplequeue');
+const limiter = require('limiter');
+const repl = require('repl');
 const sqlite = require('sqlite');
 const twitch = require('twitch-api');
 
@@ -36,14 +37,14 @@ class Lunkybot {
     this.irc = null;
     this._loginHandle = null;
     this._postNewRunsHandle = null;
-    this._discordMessageQueue = simplequeue.createQueue();
   }
 
   start() {
     process.addListener('SIGINT', this.stop);
-
     sqlite.open('lunkybot.db')
-        .then(db => { this.db = db; })
+        .then(db => {
+          this.db = db;
+        })
         .then(() => {
           return this.db.run(
               'CREATE TABLE IF NOT EXISTS ircChannels (channel TEXT)');
@@ -80,6 +81,7 @@ class Lunkybot {
   }
 
   stop() {
+    console.log(`I'm trying to stop.`);
     clearInterval(this._postNewRunsHandle);
     clearInterval(this._loginHandle);
   }
@@ -87,7 +89,12 @@ class Lunkybot {
   sendOne() {
     this._discordMessageQueue.getMessage((err, msg) => {
       if (msg) {
-        this.discord.sendMessage(msg);
+        this.discord.sendMessage(msg, response => {
+          if (!response.id) {
+            console.error(`Error while sending ${msg}: ${response}`);
+            this._discordMessageQueue.putMessage(msg);
+          }
+        });
       }
     });
     setTimeout(() => this.sendOne(), 1500);
@@ -184,7 +191,7 @@ class Lunkybot {
                               .NumberFormat('en-US', {
                                 style: 'currency',
                                 currency: 'usd',
-                                minimumFractionDigits: 0
+                                minimumFractionDigits: 0,
                               })
                               .format(parseInt(score));
           let value = time == -1 ? scoreText : time;
@@ -194,15 +201,19 @@ class Lunkybot {
 
   fetchAndPost() {
     return this.fetch('http://mossranking.com/api/recent_runs.php')
-        .then(r => Promise.all(this.postNewRuns(r)));
+        .then(r => Promise.all(this.postNewRuns(r)))
+        .catch(console.error);
   }
-  sendMessage(messageObj) { this._discordMessageQueue.putMessage(messageObj); }
+  sendMessage(messageObj) {
+    this._discordMessageQueue.putMessage(messageObj);
+  }
   postNewRuns(recentRuns) {
     let promises = [];
 
-    for (let [id_user, username, cat, category, submitted, scorerun, timerun,
+    for (let
+             [id_user, username, cat, category, submitted, scorerun, timerun,
               timerun_hf, world, level, flag_wr, link, comment] of recentRuns
-             .slice(1)) {
+                 .slice(1)) {
       let content = '';
       let article = /^[aeiou]/i.exec(category) ? 'an' : 'a';
       if (parseInt(flag_wr)) {
@@ -234,6 +245,7 @@ class Lunkybot {
                     to: recentRunsChannelId,
                     message: content,
                   });
+                  console.log(`Logging '${content}' as sent.`);
                   return this.db.run(
                       'INSERT OR REPLACE INTO runsNotified VALUES (?)',
                       content);
@@ -292,4 +304,5 @@ module.exports.bot = bot;
 
 if (require.main === module) {
   bot.start();
+  repl.start();
 }
